@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv('data-gestures/analog.csv')
+df = pd.read_csv('samples/analog.csv')
 fft_c = np.fft.rfft(df['Sample'])
 psd_c = (np.abs(fft_c)**2)/(len(df['Sample'])*1000) #fs = 100Hz
 

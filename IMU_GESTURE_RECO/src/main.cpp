@@ -94,6 +94,20 @@ const char* GESTURES[] = {
 
 #define NUM_GESTURES (sizeof(GESTURES) / sizeof(GESTURES[0]))
 
+void printFileHeader() {
+  Serial.print("aX_mean,aX_stddev,aX_rms,aX_min,aX_max,aX_psdMean,aX_psdMax,");
+  Serial.print("aY_mean,aY_stddev,aY_rms,aY_min,aY_max,aY_psdMean,aY_psdMax,");
+  Serial.print("aZ_mean,aZ_stddev,aZ_rms,aZ_min,aZ_max,aZ_psdMean,aZ_psdMax,");
+  Serial.print("gX_mean,gX_stddev,gX_rms,gX_min,gX_max,gX_psdMean,gX_psdMax,");
+  Serial.print("gY_mean,gY_stddev,gY_rms,gY_min,gY_max,gY_psdMean,gY_psdMax,");
+  Serial.print("gZ_mean,gZ_stddev,gZ_rms,gZ_min,gZ_max,gZ_psdMean,gZ_psdMax");
+  Serial.println();
+}
+
+#define RED_LED_PIN     22
+#define GREEN_LED_PIN   23
+#define BLUE_LED_PIN    24
+
 void setup() {
   // Configuring pins 22, 23, and 24 as outputs to power the RGB LED
   pinMode(22, OUTPUT);
@@ -157,7 +171,7 @@ void setup() {
     tflInputTensor = tflInterpreter->input(0);
     tflOutputTensor = tflInterpreter->output(0);
   #else
-    Serial.println("aX_mean,aX_stddev,aX_rms,aX_min,aX_max,aX_psdMean,aX_psdMax,gX_mean,gX_stddev,aY_rms,aY_min,aY_max,aY_psdMean,aY_psdMax,aZ_mean,aZ_stddev,aZ_rms,aZ_min,aZ_max,aZ_psdMean,aZ_psdMax,gX_mean,gX_stddev,gX_rms,gX_min,gX_max,gX_psdMean,gX_psdMax,gY_mean,gY_stddev,gY_rms,gY_min,gY_max,gY_psdMean,gY_psdMax,gZ_mean,gZ_stddev,gZ_rms,gZ_min,gZ_max,gZ_psdMean,gZ_psdMax");
+    printFileHeader();
   #endif
 }
 
@@ -245,10 +259,26 @@ void computeFFT(float *data,float samplingFreq ,uint16_t size = numSamples) {
 
 uint32_t t0 = 0;
 
+void readSerialCommand() {
+  String serialCommand = "";
+  if (Serial.available() > 0) {
+    serialCommand = Serial.readStringUntil('\n');
+  }
+  if (serialCommand == "printHeader") {
+    // digitalWrite(GREEN_LED_PIN, LOW);
+    printFileHeader();
+  }else if (serialCommand != "") {
+    digitalWrite(RED_LED_PIN, !digitalRead(RED_LED_PIN));
+    Serial.print("Unknown command: ");
+    Serial.println(serialCommand);
+  }
+}
+
 void loop() {
 
 #if defined(COLLECT_DATA) && !defined(COLLECT_REST) 
   while (1) {
+    readSerialCommand();
     if (IMU.accelerationAvailable()) {
       // read the acceleration data
       IMU.readAcceleration(ax[0], ay[0], az[0]);
@@ -269,9 +299,14 @@ void loop() {
 #else
   float aSum = 0;
   while (1) { // every 1 second
-    if(millis() - t0 > 10000){
+#ifdef COLLECT_REST
+    int timeout = 1000;
+#else
+    int timeout = 10000;
+#endif
+    if(millis() - t0 > timeout){
       t0 = millis();
-      Serial.println("Timeout reached, starting new sample...");
+      SERIAL_PRINTLN("Timeout reached, starting new sample...");
       break;
     }
 
@@ -321,7 +356,7 @@ void loop() {
       interval += timestamp[i] - timestamp[i - 1];
     }
   }
-  double samplingFreq = (1.0E3 * (double)numSamples) / interval; // mean sampling interval in microseconds
+  double samplingFreq = (1.0E3 * (double)numSamples) / interval; // mean sampling interval in milliseconds
   // double samplingPeriod = (double)interval / (numSamples - 1); // mean sampling period in microseconds
   // Serial.print("Interval: ");
   // Serial.print(interval);
@@ -388,5 +423,7 @@ void loop() {
     if(i < 41) Serial.print(",");
   }
   Serial.println();
+
+  digitalWrite(GREEN_LED_PIN, !digitalRead(GREEN_LED_PIN));
 #endif
 }
