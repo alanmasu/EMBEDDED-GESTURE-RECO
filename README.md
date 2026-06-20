@@ -51,7 +51,7 @@ Normally, you will see the name of your environment shown before your prompt lik
 (.venv) streopes13@steropes13 $ ls -al 
 ```
 
-### installation of jupyter notebook 
+### Installation of jupyter notebook (Mac)
 ```bash   
 pip3 install jupyter-notebook 
 ```
@@ -60,6 +60,11 @@ other version :
 python3 -m pip install jupyter-notebook
 ```
 by replacing <jupyter-notebook> you can install libraries needed (_pandas, tensorflow, keras.._) 
+
+### Installation of jupyter notebook (Linux)
+```bash
+pip install jupyterlab
+```
 
 ### _(If needed)_ Deactivate the environment 
 ```bash   
