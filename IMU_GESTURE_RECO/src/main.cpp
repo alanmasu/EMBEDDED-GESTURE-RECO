@@ -78,13 +78,13 @@ float vImag[numSamples];
 
 
 // array to map gesture index to a name
-const char* GESTURES[] = {
-    "circle-1",
-    "circle-2",
-    "rest-1",
-    "shake-1",
-    "up-down-1"
-};
+// const char* GESTURES[] = {
+//     "circle-1",
+//     "circle-2",
+//     "rest-1",
+//     "shake-1",
+//     "up-down-1"
+// };
 // const char* GESTURES[] = {
 //     "circle-1",
 //     "circle-2",
@@ -92,7 +92,7 @@ const char* GESTURES[] = {
 //     "up-down-1"
 // };
 
-#define NUM_GESTURES (sizeof(GESTURES) / sizeof(GESTURES[0]))
+// #define NUM_GESTURES (sizeof(GESTURES) / sizeof(GESTURES[0]))
 
 void printFileHeader() {
   Serial.print("aX_mean,aX_stddev,aX_rms,aX_min,aX_max,aX_psdMean,aX_psdMax,");
@@ -276,7 +276,7 @@ void readSerialCommand() {
 
 void loop() {
 
-#if defined(COLLECT_DATA) && !defined(COLLECT_REST) 
+#ifndef COLLECT_REST
   while (1) {
     readSerialCommand();
     if (IMU.accelerationAvailable()) {
@@ -299,11 +299,7 @@ void loop() {
 #else
   float aSum = 0;
   while (1) { // every 1 second
-#ifdef COLLECT_REST
     int timeout = 1000;
-#else
-    int timeout = 10000;
-#endif
     if(millis() - t0 > timeout){
       t0 = millis();
       SERIAL_PRINTLN("Timeout reached, starting new sample...");
