@@ -3,92 +3,197 @@ import serial.tools.list_ports
 import argparse
 import sys
 import threading
+from pathlib import Path
+
+# ============================================================================
+# DATASET CONFIGURATION
+# ============================================================================
+
+GESTURES = [
+    "jab",
+    "hook",
+    "overhand",
+    "cross",
+    "uppercut",
+]
+
+SAMPLES_PER_GESTURE = 20
+
+BAUD_RATE = 9600
+
+# ============================================================================
 
 def select_serial_port():
-    """
-    Scans available COM/USB ports and asks the user to select one.
-    """
     ports = list(serial.tools.list_ports.comports())
+
     if not ports:
         print("Error: No USB/Serial devices found.")
         sys.exit(1)
 
     print("\n--- Available Devices ---")
+
     for i, port in enumerate(ports):
-        # Displays index, device name (e.g., COM3 or /dev/ttyUSB0) and description
         print(f"[{i}] {port.device} - {port.description}")
 
     while True:
         try:
             choice = int(input("\nEnter the number of the port to use: "))
+
             if 0 <= choice < len(ports):
                 return ports[choice].device
-            else:
-                print("Invalid selection. Please choose a number from the list.")
+
+            print("Invalid selection.")
+
         except ValueError:
-            print("Invalid input. Please enter a valid integer.")
+            print("Please enter a valid integer.")
+
+def collect_single_file(ser, filename):
+    with open(filename, "w") as f:
+
+        print(f"\n[CONNECTED] Port: {ser.port}")
+        print(f"[SAVING] {filename}")
+        print("[INFO] Press ENTER to stop recording.\n")
+
+        stop_event = threading.Event()
+
+        def serial_reader():
+            while not stop_event.is_set():
+
+                if ser.in_waiting <= 0:
+                    continue
+
+                try:
+                    row = ser.readline().decode(
+                        "utf-8",
+                        errors="replace"
+                    ).strip()
+
+                    if not row:
+                        continue
+
+                    print(row)
+                    f.write(row + "\n")
+                    f.flush()
+
+                except Exception as e:
+                    print(f"\n[ERROR] {e}")
+                    break
+
+        thread = threading.Thread(target=serial_reader, daemon=True)
+        thread.start()
+
+        input()
+
+        stop_event.set()
+        thread.join()
+
+def collect_dataset(ser, output_dir):
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print("\n=== DATASET COLLECTION MODE ===")
+    print(f"Gestures: {len(GESTURES)}")
+    print(f"Samples per gesture: {SAMPLES_PER_GESTURE}")
+
+    total_samples = len(GESTURES) * SAMPLES_PER_GESTURE
+    print(f"Total samples: {total_samples}\n")
+
+    for gesture in GESTURES:
+
+        output_file = output_dir / f"{gesture}.csv"
+
+        print("\n" + "=" * 60)
+        print(f"Gesture: {gesture}")
+        print(f"Target samples: {SAMPLES_PER_GESTURE}")
+        input("Press ENTER when ready...")
+        print("=" * 60)
+        collected = 0
+
+        ser.reset_input_buffer()
+        
+        with open(output_file, "w") as f:
+            ser.write(b"printHeader\n")
+            ser.flush()
+
+            while collected < SAMPLES_PER_GESTURE:
+
+                if ser.in_waiting <= 0:
+                    continue
+
+                try:
+                    row = ser.readline().decode(
+                        "utf-8",
+                        errors="replace"
+                    ).strip()
+
+                    if not row:
+                        continue
+
+                    f.write(row + "\n")
+                    f.flush()
+
+                    collected += 1
+
+                    print(
+                        f"\r{gesture}: "
+                        f"{collected}/{SAMPLES_PER_GESTURE}",
+                        end="",
+                        flush=True
+                    )
+
+                except Exception as e:
+                    print(f"\n[ERROR] {e}")
+                    return
+
+        print(f"\nSaved: {output_file}")
+
+    print("\n=== DATASET COLLECTION COMPLETED ===")
 
 def main():
-    # Setup CLI argument parsing
-    parser = argparse.ArgumentParser(description="Serial Data Logger")
-    parser.add_argument("filename", help="The name of the output file (e.g., data_log.txt)")
+    parser = argparse.ArgumentParser(
+        description="Serial logger / dataset collector"
+    )
+
+    parser.add_argument(
+        "output",
+        help="Output file or output directory"
+    )
+
     args = parser.parse_args()
 
-    # Get the port from the user
+    output_path = Path(args.output)
+
     port_name = select_serial_port()
-    baud_rate = 9600  # Default baud rate (can be adjusted as needed)
 
     try:
-        # Initialize serial connection
-        # timeout=1 ensures the read loop doesn't hang indefinitely
-        ser = serial.Serial(port_name, baud_rate, timeout=1)
-        
-        # Open file in append mode
-        with open(args.filename, "w") as f:
-            print(f"\n[CONNECTED] Port: {port_name} | Saving to: {args.filename}")
-            print("[INFO] Press ENTER at any time to stop recording and save the file.\n")
+        ser = serial.Serial(
+            port_name,
+            BAUD_RATE,
+            timeout=1
+        )
 
-            # Flag to signal the background thread to stop
-            stop_event = threading.Event()
+        if output_path.exists() and output_path.is_dir():
+            collect_dataset(ser, output_path)
 
-            def serial_reader_thread():
-                """
-                Continuously reads from serial, prints to console, and writes to file.
-                """
-                while not stop_event.is_set():
-                    if ser.in_waiting > 0:
-                        try:
-                            # Read line and decode (using 'replace' to avoid crashes on noise)
-                            raw_data = ser.readline().decode('utf-8', errors='replace').strip()
-                            if raw_data:
-                                print(raw_data)          # Echo to console
-                                f.write(raw_data + "\n") # Write to file
-                                f.flush()                # Ensure data is written to disk
-                        except Exception as e:
-                            print(f"\n[ERROR] During reading: {e}")
-                            break
+        elif not output_path.exists():
+            if output_path.suffix:
+                collect_single_file(ser, output_path)
+            else:
+                collect_dataset(ser, output_path)
 
-            # Start the background thread
-            data_thread = threading.Thread(target=serial_reader_thread)
-            data_thread.daemon = True # Thread dies when main process exits
-            data_thread.start()
-
-            # Wait for user input (any key/ENTER) to terminate
-            input() 
-            
-            # Signal thread to stop and wait for it to finish
-            stop_event.set()
-            data_thread.join()
+        else:
+            collect_single_file(ser, output_path)
 
     except serial.SerialException as e:
-        print(f"\n[SERIAL ERROR] Could not open port {port_name}: {e}")
+        print(f"\n[SERIAL ERROR] {e}")
+
     except KeyboardInterrupt:
-        print("\n[INTERRUPTED] Process stopped by user.")
+        print("\n[INTERRUPTED]")
+
     finally:
-        # Clean up: close serial port if it was opened
         if 'ser' in locals() and ser.is_open:
             ser.close()
-        print(f"\n[FINISHED] Session closed. Data successfully saved in '{args.filename}'.")
+
+        print("\n[FINISHED]")
 
 if __name__ == "__main__":
     main()
