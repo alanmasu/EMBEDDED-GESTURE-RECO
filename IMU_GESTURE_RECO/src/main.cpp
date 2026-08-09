@@ -15,6 +15,8 @@
 
 #include <Arduino.h>
 #include <arduinoFFT.h>
+#include <PluggableUSBHID.h>
+#include <USBKeyboard.h>
 
 #ifdef COLLECT_DATA
   #warning "This code is for collecting data to train the model"
@@ -36,9 +38,17 @@
 #include <tensorflow/lite/schema/schema_generated.h>
 
 #include "model.h"
-// we changed the threshold of the acceleration because it was too high to detect up-down movement and rest 
+// we changed the threshold of the acceleration because it was too high to detect up-down movement and rest
 const float accelerationThreshold = 2.0; // threshold of significant in G's
 const uint16_t numSamples = 128;
+
+// WASD key mapping, one entry per GESTURES[] class (uppercut, jab, overhand, hook)
+const char gestureKeys[NUM_GESTURES] = {'w', 'd', 's', 'a'};
+// minimum probability required for a class to trigger a key press
+const float gestureConfidenceThreshold = 0.6;
+
+// USB HID keyboard interface used to emit a key tap for each recognized gesture
+USBKeyboard keyboard;
 
 //buffer of datas 
 uint64_t timestamp[numSamples];
@@ -405,11 +415,26 @@ void loop() {
     return;
   }
 
-  // Loop through the output tensor values from the model
+  // Loop through the output tensor values from the model, tracking the highest probability class
+  float maxProb = 0.0;
+  uint8_t maxIndex = 0;
   for (uint8_t i = 0; i < NUM_GESTURES; i++) {
-    Serial.print(GESTURES[i]);
-    Serial.print(": ");
-    Serial.println(tflOutputTensor->data.f[i], 6);
+    // Serial.print(GESTURES[i]);
+    // Serial.print(": ");
+    // Serial.println(tflOutputTensor->data.f[i], 6);
+    if (tflOutputTensor->data.f[i] > maxProb) {
+      maxProb = tflOutputTensor->data.f[i];
+      maxIndex = i;
+    }
+  }
+
+  // Generate a HID key tap for the recognized gesture, ignoring low-confidence predictions
+  if (maxProb >= gestureConfidenceThreshold) {
+    Serial.print("-> Gesture recognized: ");
+    Serial.print(GESTURES[maxIndex]);
+    Serial.print(" -> Key press: ");
+    Serial.println(gestureKeys[maxIndex]);
+    keyboard.key_code(gestureKeys[maxIndex]);
   }
   Serial.println();
   // samplesRead = numSamples; //reinitisialize (avoid some bugs)
