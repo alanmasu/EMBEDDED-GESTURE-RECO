@@ -429,12 +429,14 @@ void loop() {
   }
 
   // Generate a HID key tap for the recognized gesture, ignoring low-confidence predictions
-  if (maxProb >= gestureConfidenceThreshold) {
+  if (maxProb >= gestureConfidenceThreshold && GESTURES[maxIndex] != "unknown") {
     Serial.print("-> Gesture recognized: ");
     Serial.print(GESTURES[maxIndex]);
     Serial.print(" -> Key press: ");
     Serial.println(gestureKeys[maxIndex]);
     keyboard.key_code(gestureKeys[maxIndex]);
+  }else {
+    Serial.print("-> Gesture not recognized -> no key press");
   }
   Serial.println();
   // samplesRead = numSamples; //reinitisialize (avoid some bugs)
