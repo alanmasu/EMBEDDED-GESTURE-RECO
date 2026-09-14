@@ -13,7 +13,7 @@ GESTURES = [
     "jab",
     "hook",
     "overhand",
-    "cross",
+    # "cross",
     "uppercut",
 ]
 
