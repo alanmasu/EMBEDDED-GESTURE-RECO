@@ -100,8 +100,11 @@ The following instructions provide a guide on how to use the PlatformIO CLI tool
 You can install it using following the instructions on the [PlatformIO website](https://docs.platformio.org/en/latest/core/installation/index.html). 
 A more detailed instruction is available in the [`README.md`](./IMU_GESTURE_RECO/README.md#compiling-the-project-using-platformio-cli) file of the `IMU_GESTURE_RECO` directory.
 
-## What are the PIO environments
-In the `platformio.ini` file, you can find the definition of some environments like:
+## Trained model
+The trained model is included in the `model/` directory and is the last trained version of the model. This is not the directory where the model expected to be, so in order to use it please copy the `model.h` file from the `model/` directory to the `scratch/` directory and compuile the PlatformIO project as indicated in the next section.
+
+# What are the PIO environments
+In the `IMU_GESTURE_RECO/platformio.ini` file, you can find the definition of some environments like:
 ```ini
 [env:nano33ble_SenseRev2]
 platform = nordicnrf52
@@ -156,3 +159,7 @@ After running this command, the script will ask for the number of the serial por
 `<output>` can be either:
 - a file (e.g. `data-gesures/jab.csv`): the script logs everything coming from the serial port into that single file until you press ENTER;
 - a directory (e.g. `data-gesures`): the script runs in dataset mode, collecting `SAMPLES_PER_GESTURE` samples for every gesture listed in the `GESTURES` list at the top of `scripts/collect_data.py`, saving each one to `<output>/<gesture>.csv`.
+
+# Important notes for usage: 
+> The dataset collection was performed with the Arduino on the right hand, USB port on bottom side, and the headers on the rigth side.
+> If the orientation of the board is different, the model will not work correctly. 

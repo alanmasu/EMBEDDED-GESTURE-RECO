@@ -32,19 +32,18 @@
 #endif
 
 
-#include <TensorFlowLite.h>
-#include <tensorflow/lite/micro/all_ops_resolver.h>
-#include <tensorflow/lite/micro/micro_interpreter.h>
-#include <tensorflow/lite/schema/schema_generated.h>
+#ifndef COLLECT_DATA
+  #include <TensorFlowLite.h>
+  #include <tensorflow/lite/micro/all_ops_resolver.h>
+  #include <tensorflow/lite/micro/micro_interpreter.h>
+  #include <tensorflow/lite/schema/schema_generated.h>
+  #include "model.h"
+#endif
 
-#include "model.h"
 // threshold lowered with respect to the original example to reliably detect all the punches
 const float accelerationThreshold = 2.0; // threshold of significant in G's
 const uint16_t numSamples = 128;
 
-// WASD key mapping, one entry per GESTURES[] class, in the same order as scratch/model.h
-// (uppercut, jab, overhand, unknown, hook); '\0' means "no key press for this class"
-const char gestureKeys[NUM_GESTURES] = {'w', 'd', 's', '\0', 'a'};
 // minimum probability required for a class to trigger a key press
 const float gestureConfidenceThreshold = 0.6;
 
@@ -62,24 +61,26 @@ float gz[numSamples];
 
 int samplesRead = numSamples;
 
-// global variables used for TensorFlow Lite (Micro)
-//tflite::MicroErrorReporter tflErrorReporter;
 
-// pull in all the TFLM ops, you can remove this line and
-// only pull in the TFLM ops you need, if would like to reduce
-// the compiled size of the sketch.
-tflite::AllOpsResolver tflOpsResolver;
-
-const tflite::Model* tflModel = nullptr;
-tflite::MicroInterpreter* tflInterpreter = nullptr;
-TfLiteTensor* tflInputTensor = nullptr;
-TfLiteTensor* tflOutputTensor = nullptr;
-
-// Create a static memory buffer for TFLM, the size may need to
-// be adjusted based on the model you are using
-constexpr int tensorArenaSize = 8 * 1024;
-byte tensorArena[tensorArenaSize] __attribute__((aligned(16)));
-
+#ifndef COLLECT_DATA
+  // global variables used for TensorFlow Lite (Micro)
+  //tflite::MicroErrorReporter tflErrorReporter;
+  // pull in all the TFLM ops, you can remove this line and
+  // only pull in the TFLM ops you need, if would like to reduce
+  // the compiled size of the sketch.
+  tflite::AllOpsResolver tflOpsResolver;
+  const tflite::Model* tflModel = nullptr;
+  tflite::MicroInterpreter* tflInterpreter = nullptr;
+  TfLiteTensor* tflInputTensor = nullptr;
+  TfLiteTensor* tflOutputTensor = nullptr;
+  // WASD key mapping, one entry per GESTURES[] class, in the same order as scratch/model.h
+  // (uppercut, jab, overhand, unknown, hook); '\0' means "no key press for this class"
+  const char gestureKeys[NUM_GESTURES] = {'w', 'd', 's', '\0', 'a'};
+  // Create a static memory buffer for TFLM, the size may need to
+  // be adjusted based on the model you are using
+  constexpr int tensorArenaSize = 8 * 1024;
+  byte tensorArena[tensorArenaSize] __attribute__((aligned(16)));
+#endif
 // FFT setup
 const float signalFrequency = 1000;
 const float samplingFrequency = 5000;
@@ -320,25 +321,6 @@ void loop() {
     }
   }
   double samplingFreq = (1.0E3 * (double)numSamples) / interval; // mean sampling interval in milliseconds
-  // double samplingPeriod = (double)interval / (numSamples - 1); // mean sampling period in microseconds
-  // Serial.print("Interval: ");
-  // Serial.print(interval);
-  // Serial.println(" ms");
-
-  // Serial.print("Sampling frequency: ");
-  // Serial.print(samplingFreq);
-  // Serial.println(" Hz");
-
-  // Serial.print("Mean sampling period: ");
-  // Serial.print(samplingPeriod);
-  // Serial.println(" us");
-
-  // for (int i = 0; i < 10; ++i) {
-  //   Serial.print("timestamp[");
-  //   Serial.print(i);
-  //   Serial.print("] = ");
-  //   Serial.println(timestamp[i]);
-  // }
 
   // Extracting features from the raw data
   float features[42];
