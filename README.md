@@ -100,8 +100,11 @@ The following instructions provide a guide on how to use the PlatformIO CLI tool
 You can install it using following the instructions on the [PlatformIO website](https://docs.platformio.org/en/latest/core/installation/index.html). 
 A more detailed instruction is available in the [`README.md`](./IMU_GESTURE_RECO/README.md#compiling-the-project-using-platformio-cli) file of the `IMU_GESTURE_RECO` directory.
 
-## What are the PIO environments
-In the `platformio.ini` file, you can find the definition of some environments like:
+## Trained model
+The trained model is included in the `model/` directory and is the last trained version of the model. This is not the directory where the model expected to be, so in order to use it please copy the `model.h` file from the `model/` directory to the `scratch/` directory and compuile the PlatformIO project as indicated in the next section.
+
+# What are the PIO environments
+In the `IMU_GESTURE_RECO/platformio.ini` file, you can find the definition of some environments like:
 ```ini
 [env:nano33ble_SenseRev2]
 platform = nordicnrf52
