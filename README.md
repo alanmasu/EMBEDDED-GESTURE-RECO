@@ -159,3 +159,7 @@ After running this command, the script will ask for the number of the serial por
 `<output>` can be either:
 - a file (e.g. `data-gesures/jab.csv`): the script logs everything coming from the serial port into that single file until you press ENTER;
 - a directory (e.g. `data-gesures`): the script runs in dataset mode, collecting `SAMPLES_PER_GESTURE` samples for every gesture listed in the `GESTURES` list at the top of `scripts/collect_data.py`, saving each one to `<output>/<gesture>.csv`.
+
+# Important notes for usage: 
+> The dataset collection was performed with the Arduino on the right hand, USB port on bottom side, and the headers on the rigth side.
+> If the orientation of the board is different, the model will not work correctly. 
