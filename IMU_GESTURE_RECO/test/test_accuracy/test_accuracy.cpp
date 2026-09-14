@@ -42,18 +42,6 @@ byte tensorArena[tensorArenaSize] __attribute__((aligned(16)));
 
 float predictions[num_samples][num_classes] = {0.0}; // array to store the model predictions for each sample
 
-
-// array to map gesture index to a name
-const char* GESTURES[] = {
-    "circle-1",
-    "circle-2",
-    "rest-1",
-    "shake-1",
-    "up-down-1"
-};
-
-#define NUM_GESTURES (sizeof(GESTURES) / sizeof(GESTURES[0]))
-
 void test_accuracy() {
   for(int sample = 0; sample < num_samples; sample++){
     for(int i = 0; i < 42; i++){
